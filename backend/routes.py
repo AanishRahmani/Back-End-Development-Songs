@@ -115,55 +115,28 @@ def create_song():
 
 @app.route("/song/<int:id>", methods=["PUT"])
 def update_song(id):
-    try:
-        # Extract updated data from the request body
-        updated_data = request.get_json()
-        if not updated_data:
-            return jsonify({"message": "No data provided"}), 400
 
-        # Find the song by id
-        song = db.songs.find_one({"id": id})
-        
-        if not song:
-            # If the song is not found, return a 404 response
-            return jsonify({"message": "song not found"}), 404
+    # get data from the json body
+    song_in = request.json
 
-        # Prepare the updated song data
-        update_values = {"$set": updated_data}
+    song = db.songs.find_one({"id": id})
 
-        # Update the song in the database
-        result = db.songs.update_one({"id": id}, update_values)
+    if song == None:
+        return {"message": "song not found"}, 404
 
-        if result.matched_count > 0:
-            if result.modified_count > 0:
-                # If the song was updated, return the updated song with a 200 OK status
-                updated_song = db.songs.find_one({"id": id})
-                return jsonify(updated_song), 200
-            else:
-                # If no fields were modified, return a message indicating no changes were made
-                return jsonify({"message": "song found, but nothing updated"}), 200
-        else:
-            return jsonify({"message": "song not found"}), 404
+    updated_data = {"$set": song_in}
 
-    except Exception as e:
-        # Catch any unexpected exceptions and return a 500 error
-        return jsonify({"message": str(e)}), 500
+    result = db.songs.update_one({"id": id}, updated_data)
 
-
+    if result.modified_count == 0:
+        return {"message": "song found, but nothing updated"}, 200
+    else:
+        return parse_json(db.songs.find_one({"id": id})), 201
 
 @app.route("/song/<int:id>", methods=["DELETE"])
 def delete_song(id):
-    try:
-        # Attempt to delete the song by id
-        result = mongo.db.songs.delete_one({"id": id})
-
-        if result.deleted_count == 0:
-            # If no document was deleted, return a 404 with a message
-            return jsonify({"message": "song not found"}), 404
-        
-        # If song is successfully deleted, return 204 No Content
-        return '', 204
-
-    except Exception as e:
-        # Catch any unexpected exceptions and return a 500 error
-        return jsonify({"message": str(e)}), 500
+    result = db.songs.delete_one({"id": id})
+    if result.deleted_count == 0:
+        return {"message": "song not found"}, 404
+    else:
+        return "", 204
